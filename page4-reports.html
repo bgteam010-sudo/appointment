@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weight Loss Consultation - Attach Reports</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #2a9d8f; --teal-light: #e8f5f3; --teal-dark: #1f7a6e;
+    --orange: #e76f51; --orange-light: #fff4f0;
+    --navy: #1a2744; --gray-50: #f8fafb; --gray-100: #f0f4f5;
+    --gray-300: #c8d4d6; --gray-500: #7a9098; --gray-700: #3d5560;
+    --white: #ffffff;
+    --shadow-sm: 0 2px 8px rgba(26,39,68,0.06); --shadow-md: 0 4px 20px rgba(26,39,68,0.10);
+    --radius: 16px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--gray-50); min-height: 100vh; color: var(--navy); }
+
+  .portal-header {
+    background: var(--white); border-bottom: 1px solid var(--gray-100);
+    padding: 18px 32px; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow-sm);
+  }
+  .logo-mark { width: 40px; height: 40px; background: linear-gradient(135deg, var(--teal), var(--teal-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+  .portal-header h1 { font-family: 'DM Serif Display', serif; font-size: 20px; }
+  .portal-header span { font-size: 13px; color: var(--gray-500); }
+
+  .page-wrapper { max-width: 560px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  .step-icon-wrap {
+    width: 60px; height: 60px; background: var(--teal-light); border-radius: 16px;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
+  }
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 22px; text-align: center; margin-bottom: 6px; }
+  .page-subtitle { font-size: 14px; color: var(--gray-500); text-align: center; margin-bottom: 28px; }
+
+  .progress-wrap { margin-bottom: 36px; }
+  .progress-meta { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .progress-meta span { font-size: 13px; color: var(--gray-500); }
+  .progress-meta strong { font-size: 13px; color: var(--teal); }
+  .progress-track { background: var(--gray-100); border-radius: 99px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--teal), #52c7b8); border-radius: 99px; }
+
+  .section-q { font-size: 14px; color: var(--gray-700); text-align: center; margin-bottom: 22px; line-height: 1.6; }
+
+  .report-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+  .report-option {
+    background: var(--white); border: 1.5px solid var(--gray-100);
+    border-radius: var(--radius-sm); padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .report-option:hover { border-color: var(--teal); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .report-option.selected { border-color: var(--teal); background: var(--teal-light); }
+  .report-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .icon-blue { background: #e8f0fe; }
+  .icon-green { background: #e8f5e9; }
+  .icon-gray { background: var(--gray-100); }
+  .report-info h4 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+  .report-info p { font-size: 13px; color: var(--gray-500); }
+
+  .upload-zone {
+    border: 2px dashed var(--gray-300); border-radius: var(--radius);
+    padding: 36px 24px; text-align: center; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 20px; display: none;
+    background: var(--white);
+  }
+  .upload-zone:hover { border-color: var(--teal); background: var(--teal-light); }
+  .upload-zone.active { border-color: var(--teal); background: var(--teal-light); }
+  .upload-zone svg { margin: 0 auto 12px; display: block; color: var(--teal); }
+  .upload-zone p { font-size: 14px; color: var(--gray-500); }
+  .upload-zone strong { color: var(--teal); cursor: pointer; }
+  .upload-zone input { display: none; }
+
+  .uploaded-file {
+    background: var(--teal-light); border: 1.5px solid #b2ddd9;
+    border-radius: var(--radius-sm); padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .uploaded-file-name { flex: 1; font-size: 13px; color: var(--navy); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .remove-file { background: none; border: none; cursor: pointer; color: var(--gray-500); padding: 2px; border-radius: 50%; transition: background 0.15s; }
+  .remove-file:hover { background: rgba(0,0,0,0.06); color: var(--orange); }
+
+  .nav-btns { display: flex; gap: 12px; margin-bottom: 20px; }
+  .btn-prev {
+    flex: 1; padding: 13px; border: 1.5px solid var(--gray-300); background: var(--white);
+    border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--gray-700);
+    cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-prev:hover { border-color: var(--navy); color: var(--navy); }
+  .btn-next {
+    flex: 2; padding: 13px; background: var(--teal); border: none;
+    border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; color: white;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: 'DM Sans', sans-serif; text-decoration: none;
+  }
+  .btn-next:hover { background: var(--teal-dark); box-shadow: 0 4px 16px rgba(42,157,143,0.3); }
+
+  .final-step-note {
+    background: var(--orange-light); border: 1.5px solid #fdddd5; border-radius: var(--radius-sm);
+    padding: 14px 18px; margin-bottom: 20px;
+  }
+  .final-step-note p { font-size: 13px; color: var(--gray-700); }
+  .final-step-note strong { color: var(--orange); }
+  .back-depts { text-align: center; display: block; font-size: 13px; color: var(--gray-500); text-decoration: none; margin-top: 8px; transition: color 0.2s; }
+  .back-depts:hover { color: var(--teal); }
+</style>
+</head>
+<body>
+<header class="portal-header">
+  <div class="logo-mark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+  </div>
+  <div>
+    <h1>WellPath Clinic</h1>
+    <span>Appointment Portal</span>
+  </div>
+</header>
+
+<div class="page-wrapper">
+  <div class="step-icon-wrap">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="12" y1="18" x2="12" y2="12"/>
+      <line x1="9" y1="15" x2="15" y2="15"/>
+    </svg>
+  </div>
+  <h1 class="page-title">Dr. Meera Kapoor – Weight Loss Consultation</h1>
+  <p class="page-subtitle">Attach Medical Reports (Optional)</p>
+
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span>Step 2 of 2</span>
+      <strong>100%</strong>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+  </div>
+
+  <p class="section-q">Would you like to attach any medical reports to help your doctor better understand your condition?</p>
+
+  <div class="report-options">
+    <div class="report-option" id="opt-share" onclick="selectOption('share')">
+      <div class="report-icon icon-blue">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b5bdb" stroke-width="1.8">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      <div class="report-info">
+        <h4>Share Existing Report</h4>
+        <p>Select from reports you've previously uploaded to your profile</p>
+      </div>
+    </div>
+
+    <div class="report-option" id="opt-upload" onclick="selectOption('upload')">
+      <div class="report-icon icon-green">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="1.8">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="report-info">
+        <h4>Upload New Report</h4>
+        <p>Upload a new medical report from your device</p>
+      </div>
+    </div>
+
+    <div class="report-option" id="opt-skip" onclick="selectOption('skip')">
+      <div class="report-icon icon-gray">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="1.8">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </div>
+      <div class="report-info">
+        <h4>Skip Report Attachment</h4>
+        <p>Continue without attaching any medical reports</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload zone (shown when upload selected) -->
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <p><strong>Click to browse</strong> or drag &amp; drop files here</p>
+    <p style="margin-top:6px;font-size:12px">Supports PDF, JPG, PNG (max 10MB)</p>
+    <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="handleFileSelect(event)">
+  </div>
+
+  <div id="fileList"></div>
+
+  <div class="nav-btns">
+    <button class="btn-prev" onclick="window.history.back()">Back to Questionnaire</button>
+    <a class="btn-next" href="page5-request.html" id="continueBtn">
+      Continue
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+
+  <div class="final-step-note">
+    <p><strong>Final step:</strong> After completing the questionnaire, you'll submit your appointment request for provider review.</p>
+  </div>
+
+  <a href="page1-departments.html" class="back-depts">← Back to Departments</a>
+</div>
+
+<script>
+let selectedOption = null;
+const uploadedFiles = [];
+
+function selectOption(opt) {
+  selectedOption = opt;
+  document.querySelectorAll('.report-option').forEach(el => el.classList.remove('selected'));
+  document.getElementById('opt-' + opt).classList.add('selected');
+  document.getElementById('uploadZone').style.display = opt === 'upload' ? 'block' : 'none';
+}
+
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    uploadedFiles.push(f);
+    renderFile(f);
+  });
+}
+
+function renderFile(f) {
+  const div = document.createElement('div');
+  div.className = 'uploaded-file';
+  div.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <span class="uploaded-file-name">${f.name}</span>
+    <button class="remove-file" onclick="this.parentElement.remove()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>`;
+  document.getElementById('fileList').appendChild(div);
+}
+
+// Drag and drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('active'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('active'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('active');
+  Array.from(e.dataTransfer.files).forEach(f => { uploadedFiles.push(f); renderFile(f); });
+});
+</script>
+</body>
+</html>
