@@ -40,7 +40,21 @@
 
   .page-title { font-family: 'DM Serif Display', serif; font-size: 28px; text-align: center; margin-bottom: 8px; }
   .page-subtitle { font-size: 15px; color: var(--gray-500); text-align: center; line-height: 1.6; margin-bottom: 36px; }
-  .patient-name { color: var(--teal); font-weight: 600; }
+
+  /* Firebase save status banner */
+  .save-banner {
+    border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px;
+    font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px;
+    animation: fadeUp 0.4s ease both;
+  }
+  .save-banner.saving { background: #fffbeb; border: 1.5px solid #fde68a; color: #92400e; }
+  .save-banner.saved  { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #15803d; }
+  .save-banner.error  { background: #fff5f5; border: 1.5px solid #fca5a5; color: #b91c1c; }
+  .save-spinner {
+    width: 16px; height: 16px; border: 2px solid #fde68a; border-top-color: #b45309;
+    border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .summary-card {
     background: var(--white); border-radius: var(--radius); padding: 24px;
@@ -96,9 +110,7 @@
   }
   .btn-secondary:hover { border-color: var(--navy); color: var(--navy); }
 
-  .ref-id {
-    text-align: center; font-size: 12px; color: var(--gray-300); margin-top: 20px;
-  }
+  .ref-id { text-align: center; font-size: 12px; color: var(--gray-300); margin-top: 20px; }
   .ref-id span { font-weight: 600; color: var(--gray-500); }
 </style>
 </head>
@@ -122,6 +134,12 @@
 
   <h1 class="page-title">Request Submitted!</h1>
   <p class="page-subtitle">Your appointment request has been sent to <strong>Dr. Meera Kapoor</strong>. You'll receive a confirmation once it's approved.</p>
+
+  <!-- Firebase save status — shown dynamically -->
+  <div class="save-banner saving" id="saveBanner">
+    <div class="save-spinner"></div>
+    Saving your appointment to our system…
+  </div>
 
   <div class="summary-card">
     <h4>Appointment Summary</h4>
@@ -168,7 +186,7 @@
   </div>
 
   <div class="status-pending">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" flex-shrink="0" style="flex-shrink:0">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" style="flex-shrink:0">
       <circle cx="12" cy="12" r="10"/>
       <path d="M12 8v4l3 3"/>
     </svg>
@@ -190,7 +208,7 @@
         Provider will review and approve your request
       </li>
       <li>
-        <div class="check-mark" style="background:var(--gray-300)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.2 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.28-1.28a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
+        <div class="check-mark" style="background:var(--gray-300)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.2 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18z"/></svg></div>
         You'll be notified via email/phone when approved
       </li>
     </ul>
@@ -204,16 +222,103 @@
   <p class="ref-id">Reference ID: <span id="refId">—</span></p>
 </div>
 
-<script>
-const name = sessionStorage.getItem('patientName') || 'Patient';
-const age = sessionStorage.getItem('patientAge') || '';
-const gender = sessionStorage.getItem('patientGender') || '';
-const date = sessionStorage.getItem('appointmentDate') || 'Tuesday, March 24, 2026';
-const time = sessionStorage.getItem('appointmentTime') || '3:30 PM';
+<!-- ══════════════════════════════════════════════
+     FIREBASE SDK  (v10 modular, loaded as ESM)
+     ══════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-document.getElementById('confPatient').textContent = `${name}${age ? ', Age ' + age : ''}${gender ? ' · ' + gender : ''}`;
-document.getElementById('confDateTime').textContent = `${date} at ${time}`;
-document.getElementById('refId').textContent = 'WLC-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+  // ════════════════════════════════════════════════
+  // 🔧 PASTE YOUR FIREBASE CONFIG HERE
+  //    Firebase Console → Project Settings → Your Apps → Web
+  // ════════════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCchLfleDnJVGHopbQnYN4RoLFLpf_cTL0",
+    authDomain:        "wellpath-clinic.firebaseapp.com",
+    projectId:         "wellpath-clinic",
+    storageBucket:     "wellpath-clinic.firebasestorage.app",
+    messagingSenderId: "1012769542606",
+    appId:             "1:1012769542606:web:a8ceb76fc16bf460cadb9f"
+  };
+  // ════════════════════════════════════════════════
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // ── Pull everything from sessionStorage ──────
+  const name    = sessionStorage.getItem('patientName')   || '';
+  const age     = sessionStorage.getItem('patientAge')    || '';
+  const gender  = sessionStorage.getItem('patientGender') || '';
+  const date    = sessionStorage.getItem('appointmentDate') || 'Tuesday, March 24, 2026';
+  const time    = sessionStorage.getItem('appointmentTime') || '3:30 PM';
+  const refId   = 'WLC-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+
+  let qaRaw = {};
+  try { qaRaw = JSON.parse(sessionStorage.getItem('questionnaireAnswers') || '{}'); } catch(e) {}
+
+  // ── Update page display ──────────────────────
+  document.getElementById('confPatient').textContent =
+    `${name}${age ? ', Age ' + age : ''}${gender ? ' · ' + gender : ''}`;
+  document.getElementById('confDateTime').textContent = `${date} at ${time}`;
+  document.getElementById('refId').textContent = refId;
+
+  // ── Map questionnaire keys to readable labels ─
+  const qaLabels = {
+    weight:     'Current weight (kg)',
+    height:     'Height (cm)',
+    goal:       'Weight loss goal',
+    conditions: 'Medical conditions',
+    duration:   'Duration trying to lose weight'
+  };
+  const qaFormatted = {};
+  Object.entries(qaRaw).forEach(([k, v]) => {
+    qaFormatted[qaLabels[k] || k] = v;
+  });
+
+  // ── Build Firestore document ─────────────────
+  const appointment = {
+    // Patient details
+    name,
+    age:    age    ? parseInt(age)  : null,
+    gender,
+    phone:  '',           // not collected pre-submit — add if you want
+    email:  '',           // same
+    // Appointment
+    service:         'Weight Loss Consultation',
+    provider:        'Dr. Meera Kapoor',
+    date,
+    time,
+    // Questionnaire answers (readable labels as keys)
+    qa: qaFormatted,
+    // Admin fields
+    status:    'pending',
+    notified:  false,
+    ref:       refId,
+    createdAt: serverTimestamp()
+  };
+
+  // ── Save to Firestore ────────────────────────
+  const banner = document.getElementById('saveBanner');
+
+  try {
+    await addDoc(collection(db, 'appointments'), appointment);
+
+    banner.className = 'save-banner saved';
+    banner.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M20 6L9 17l-5-5"/></svg>
+      Appointment saved! Dr. Kapoor will review your request shortly.
+    `;
+  } catch (err) {
+    console.error('Firebase save error:', err);
+    banner.className = 'save-banner error';
+    banner.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Could not save to database. Please screenshot your Reference ID: <strong>${refId}</strong>
+    `;
+  }
 </script>
 </body>
 </html>
