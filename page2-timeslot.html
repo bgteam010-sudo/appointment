@@ -228,11 +228,11 @@
 
   <!-- Day navigator -->
   <div class="day-nav">
-    <button class="day-nav-btn" id="prevBtn" onclick="scrollDays(-1)" disabled>
+    <button class="day-nav-btn" id="prevBtn" disabled>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <div class="day-strip" id="dayStrip"></div>
-    <button class="day-nav-btn" id="nextBtn" onclick="scrollDays(1)">
+    <button class="day-nav-btn" id="nextBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
     </button>
   </div>
@@ -270,7 +270,7 @@
       <p id="selectedText"></p>
       <p style="font-size:12px;color:var(--gray-500);margin-top:2px">Dr. Meera Kapoor</p>
     </div>
-    <button class="sel-apt-dismiss" onclick="clearSelection()">
+    <button class="sel-apt-dismiss" id="dismissBtn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
   </div>
@@ -291,6 +291,13 @@ import { getFirestore, collection, onSnapshot, query, where }
 // ─────────────────────────────────────────
 // ★ CONFIG
 // ─────────────────────────────────────────
+const WHATSAPP_NUMBER  = '919876543210';
+const CLINIC_OPEN_DAYS = [1,2,3,4,5,6];
+const SLOT_START_HOUR  = 9;
+const SLOT_END_HOUR    = 21;
+const DAYS_AHEAD       = 14;
+const CHIPS_PER_PAGE   = 5;
+
 const firebaseConfig = {
   apiKey:            "AIzaSyCchLfleDnJVGHopbQnYN4RoLFLpf_cTL0",
   authDomain:        "wellpath-clinic.firebaseapp.com",
@@ -300,13 +307,6 @@ const firebaseConfig = {
   appId:             "1:1012769542606:web:a8ceb76fc16bf460cadb9f"
 };
 
-const WHATSAPP_NUMBER  = '919876543210';
-const CLINIC_OPEN_DAYS = [1,2,3,4,5,6];
-const SLOT_START_HOUR  = 9;
-const SLOT_END_HOUR    = 21;
-const DAYS_AHEAD       = 14;
-const CHIPS_PER_PAGE   = 5;
-
 // ─────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────
@@ -314,7 +314,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 function today() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function dateKey(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 
-// BOOKED: "YYYY-MM-DD" → array of "HH:MM" — rebuilt live from Firestore
+// BOOKED map — rebuilt live from Firestore
 let BOOKED = {};
 
 // All 30-min slots for the day
@@ -472,7 +472,7 @@ function renderSlots() {
       const isSel    = !isBooked && selectedSlot === k;
       html += `
         <div class="slot-item${isBooked ? ' booked' : ''}${isSel ? ' selected' : ''}"
-          ${isBooked ? '' : `onclick="pickSlot('${k}', '${label}')"`}>
+          ${isBooked ? '' : `data-slot="${k}" data-label="${label}"`}>
           <div class="slot-date">${label}</div>
           <div class="slot-time">${fmtRange(k)}</div>
           ${isBooked ? '<div class="slot-booked-tag">Booked</div>' : ''}
@@ -482,6 +482,11 @@ function renderSlots() {
   });
 
   container.innerHTML = html;
+
+  // Delegated click — works even after innerHTML re-render
+  container.querySelectorAll('.slot-item[data-slot]').forEach(el => {
+    el.addEventListener('click', () => pickSlot(el.dataset.slot, el.dataset.label));
+  });
 }
 
 // ─────────────────────────────────────────
@@ -522,88 +527,82 @@ function updateTotalLabel() {
 }
 
 // ─────────────────────────────────────────
-// Loading state
+// Init — Firebase real-time listener
 // ─────────────────────────────────────────
-function showLoadingSlots() {
-  document.getElementById('slotsContainer').innerHTML = `
-    <div style="text-align:center;padding:40px 0;color:var(--gray-500);">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"
-        style="animation:spin 1s linear infinite;display:block;margin:0 auto 12px">
-        <path d="M21 12a9 9 0 11-6.219-8.56"/>
-      </svg>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      <p style="font-size:14px">Loading real-time slots…</p>
-    </div>`;
-  document.getElementById('totalAvailLabel').textContent = 'Connecting…';
-}
 
-showLoadingSlots();
+// Show spinner while connecting
+document.getElementById('slotsContainer').innerHTML = `
+  <div style="text-align:center;padding:40px 0;color:var(--gray-500);">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2a9d8f" stroke-width="2"
+      style="animation:fbspin 1s linear infinite;display:block;margin:0 auto 12px">
+      <path d="M21 12a9 9 0 11-6.219-8.56"/>
+    </svg>
+    <style>@keyframes fbspin{to{transform:rotate(360deg)}}</style>
+    <p style="font-size:14px">Loading real-time availability…</p>
+  </div>`;
+document.getElementById('totalAvailLabel').textContent = 'Connecting…';
 
-let firstLoad = true;
+// Attach button handlers via JS (required for type="module")
+document.getElementById('prevBtn').addEventListener('click', () => scrollDays(-1));
+document.getElementById('nextBtn').addEventListener('click', () => scrollDays(1));
+document.getElementById('dismissBtn').addEventListener('click', () => clearSelection());
 
-// ─────────────────────────────────────────
-// Firebase init + real-time listener
-// Fires instantly whenever any appointment
-// is booked/changed in Firestore
-// ─────────────────────────────────────────
+// Firebase
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
-const fsQuery = query(
-  collection(db, 'appointments'),
-  where('provider', '==', 'Dr. Meera Kapoor')
-);
+let firstLoad = true;
 
-onSnapshot(fsQuery, (snapshot) => {
-  // Rebuild BOOKED map fresh from all Firestore docs
-  BOOKED = {};
+onSnapshot(
+  query(collection(db, 'appointments'), where('provider', '==', 'Dr. Meera Kapoor')),
+  (snapshot) => {
+    // Rebuild BOOKED from live Firestore data
+    BOOKED = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.date || !data.time) return;
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (!data.date || !data.time) return;
+      // date stored as "Monday, March 30, 2026" → parse to Date → YYYY-MM-DD
+      const parsedDate = new Date(data.date);
+      if (isNaN(parsedDate.getTime())) return;
+      const dk = dateKey(parsedDate);
 
-    // data.date = "Monday, March 30, 2026"  → YYYY-MM-DD
-    const parsedDate = new Date(data.date);
-    if (isNaN(parsedDate.getTime())) return;
-    const dk = dateKey(parsedDate);
+      // time stored as "2:30 PM" → "14:30"
+      const mt = data.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!mt) return;
+      let h = parseInt(mt[1]);
+      const mins = mt[2];
+      if (mt[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+      if (mt[3].toUpperCase() === 'AM' && h === 12) h = 0;
+      const timeKey = `${pad(h)}:${mins}`;
 
-    // data.time = "2:30 PM"  → "14:30"
-    const m = data.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    if (!m) return;
-    let h = parseInt(m[1]);
-    const mins = m[2];
-    const ampm = m[3].toUpperCase();
-    if (ampm === 'PM' && h !== 12) h += 12;
-    if (ampm === 'AM' && h === 12) h = 0;
-    const timeKey = `${pad(h)}:${mins}`;
+      if (!BOOKED[dk]) BOOKED[dk] = [];
+      BOOKED[dk].push(timeKey);
+    });
 
-    if (!BOOKED[dk]) BOOKED[dk] = [];
-    BOOKED[dk].push(timeKey);
-  });
+    console.log('[WellPath] Firestore live update:', BOOKED);
+    updateTotalLabel();
 
-  console.log('[WellPath] Live update from Firestore:', BOOKED);
-
-  updateTotalLabel();
-
-  if (firstLoad) {
-    firstLoad = false;
-    renderStrip();
-    setDay(0);
-  } else {
-    // Re-render live without resetting selected slot
-    renderStrip();
-    renderSlots();
+    if (firstLoad) {
+      firstLoad = false;
+      renderStrip();
+      setDay(0);
+    } else {
+      renderStrip();
+      renderSlots();
+    }
+  },
+  (err) => {
+    console.error('[WellPath] Firestore error:', err);
+    document.getElementById('slotsContainer').innerHTML = `
+      <div style="background:#fff4f0;border:1.5px solid #fdddd5;border-radius:10px;
+        padding:16px 20px;font-size:13px;color:#3d5560;">
+        <strong style="color:#e76f51;">⚠ Could not connect to database.</strong><br>
+        Please check your internet connection and refresh.
+      </div>`;
+    document.getElementById('totalAvailLabel').textContent = 'Connection error';
   }
-
-}, (err) => {
-  console.error('[WellPath] Firestore error:', err);
-  document.getElementById('slotsContainer').innerHTML = `
-    <div style="background:var(--orange-light);border:1.5px solid #fdddd5;
-      border-radius:var(--radius-sm);padding:16px 20px;font-size:13px;color:var(--gray-700);">
-      <strong style="color:var(--orange);">⚠ Could not connect to database.</strong><br>
-      Please refresh the page to try again.
-    </div>`;
-});
+);
 </script>
 </body>
 </html>
