@@ -314,6 +314,15 @@ function pad(n) { return String(n).padStart(2, '0'); }
 function today() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function dateKey(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 
+// Returns true if this slot time has already passed on the given day
+function isPastSlot(day, hhmm) {
+  const now = new Date();
+  const slotTime = new Date(day);
+  const [h, m] = hhmm.split(':').map(Number);
+  slotTime.setHours(h, m, 0, 0);
+  return slotTime <= now; // grey out current slot too — must be future only
+}
+
 // BOOKED map — rebuilt live from Firestore
 let BOOKED = {};
 
@@ -326,10 +335,10 @@ function allSlots() {
   return out;
 }
 
-// How many slots are free on a given date
+// How many slots are free on a given date (excludes booked AND past slots)
 function freeCount(d) {
   const booked = new Set(BOOKED[dateKey(d)] || []);
-  return allSlots().filter(k => !booked.has(k)).length;
+  return allSlots().filter(k => !booked.has(k) && !isPastSlot(d, k)).length;
 }
 
 function isFullyBooked(d) { return freeCount(d) === 0; }
@@ -469,13 +478,16 @@ function renderSlots() {
     html += `<div class="period-label">${p.label}</div><div class="slots-grid">`;
     pSlots.forEach(k => {
       const isBooked = booked.has(k);
-      const isSel    = !isBooked && selectedSlot === k;
+      const isPast   = !isBooked && isPastSlot(day, k);
+      const isSel    = !isBooked && !isPast && selectedSlot === k;
+      const disabled = isBooked || isPast;
       html += `
-        <div class="slot-item${isBooked ? ' booked' : ''}${isSel ? ' selected' : ''}"
-          ${isBooked ? '' : `data-slot="${k}" data-label="${label}"`}>
+        <div class="slot-item${isBooked ? ' booked' : ''}${isPast ? ' booked' : ''}${isSel ? ' selected' : ''}"
+          ${disabled ? '' : `data-slot="${k}" data-label="${label}"`}>
           <div class="slot-date">${label}</div>
           <div class="slot-time">${fmtRange(k)}</div>
           ${isBooked ? '<div class="slot-booked-tag">Booked</div>' : ''}
+          ${isPast   ? '<div class="slot-booked-tag">Past</div>'   : ''}
         </div>`;
     });
     html += '</div>';
