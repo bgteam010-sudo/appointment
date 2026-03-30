@@ -282,42 +282,30 @@
   </a>
 </div>
 
-<script>
-// ─────────────────────────────────────────
-// ★ CONFIG — edit these for your clinic
-// ─────────────────────────────────────────
-const WHATSAPP_NUMBER  = '919876543210'; // Country code + number, no +
-const CLINIC_OPEN_DAYS = [1,2,3,4,5,6]; // 0=Sun 1=Mon … 6=Sat
-const SLOT_START_HOUR  = 9;             // 9:00 AM
-const SLOT_END_HOUR    = 21;            // last slot 8:30 PM → 9:00 PM
-const DAYS_AHEAD       = 14;            // days to show in strip
-const CHIPS_PER_PAGE   = 5;            // chips visible at once
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, query, where }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ─────────────────────────────────────────
-// ★ BOOKED SLOTS — only a few realistic ones
-//   Format: "YYYY-MM-DD" → ["HH:MM", ...]
-//   In production: replace with fetch() from your API
+// ★ CONFIG
 // ─────────────────────────────────────────
-function buildBookedData() {
-  const data = {};
-  const base = today();
+const firebaseConfig = {
+  apiKey:            "AIzaSyCchLfleDnJVGHopbQnYN4RoLFLpf_cTL0",
+  authDomain:        "wellpath-clinic.firebaseapp.com",
+  projectId:         "wellpath-clinic",
+  storageBucket:     "wellpath-clinic.firebasestorage.app",
+  messagingSenderId: "1012769542606",
+  appId:             "1:1012769542606:web:a8ceb76fc16bf460cadb9f"
+};
 
-  function addDays(n) { const d = new Date(base); d.setDate(d.getDate() + n); return d; }
-  function key(d) { return dateKey(d); }
-
-  // Just a few booked slots on various days — looks realistic
-  data[key(addDays(0))] = ["09:00","10:30","14:00"];                        // today: 3 booked
-  data[key(addDays(1))] = ["09:30","11:00","13:30","16:00"];                 // tomorrow: 4 booked
-  data[key(addDays(3))] = ["09:00","09:30","10:00","11:00","15:30","18:00"]; // day+3: 6 booked
-  data[key(addDays(5))] = ["10:00","12:00","14:30","17:00"];                 // day+5: 4 booked
-  data[key(addDays(7))] = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30",
-                            "13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30",
-                            "17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30"]; // day+7: FULLY BOOKED (demo)
-  data[key(addDays(9))] = ["09:00","11:30","15:00","17:30","19:00"];         // day+9: 5 booked
-  data[key(addDays(11))]= ["10:30","13:00","16:00"];                         // day+11: 3 booked
-
-  return data;
-}
+const WHATSAPP_NUMBER  = '919876543210';
+const CLINIC_OPEN_DAYS = [1,2,3,4,5,6];
+const SLOT_START_HOUR  = 9;
+const SLOT_END_HOUR    = 21;
+const DAYS_AHEAD       = 14;
+const CHIPS_PER_PAGE   = 5;
 
 // ─────────────────────────────────────────
 // Helpers
@@ -326,7 +314,8 @@ function pad(n) { return String(n).padStart(2, '0'); }
 function today() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function dateKey(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 
-const BOOKED = buildBookedData();
+// BOOKED: "YYYY-MM-DD" → array of "HH:MM" — rebuilt live from Firestore
+let BOOKED = {};
 
 // All 30-min slots for the day
 function allSlots() {
@@ -533,11 +522,88 @@ function updateTotalLabel() {
 }
 
 // ─────────────────────────────────────────
-// Init
+// Loading state
 // ─────────────────────────────────────────
-updateTotalLabel();
-renderStrip();
-setDay(0); // show today's slots on load
+function showLoadingSlots() {
+  document.getElementById('slotsContainer').innerHTML = `
+    <div style="text-align:center;padding:40px 0;color:var(--gray-500);">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"
+        style="animation:spin 1s linear infinite;display:block;margin:0 auto 12px">
+        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+      </svg>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      <p style="font-size:14px">Loading real-time slots…</p>
+    </div>`;
+  document.getElementById('totalAvailLabel').textContent = 'Connecting…';
+}
+
+showLoadingSlots();
+
+let firstLoad = true;
+
+// ─────────────────────────────────────────
+// Firebase init + real-time listener
+// Fires instantly whenever any appointment
+// is booked/changed in Firestore
+// ─────────────────────────────────────────
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const fsQuery = query(
+  collection(db, 'appointments'),
+  where('provider', '==', 'Dr. Meera Kapoor')
+);
+
+onSnapshot(fsQuery, (snapshot) => {
+  // Rebuild BOOKED map fresh from all Firestore docs
+  BOOKED = {};
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (!data.date || !data.time) return;
+
+    // data.date = "Monday, March 30, 2026"  → YYYY-MM-DD
+    const parsedDate = new Date(data.date);
+    if (isNaN(parsedDate.getTime())) return;
+    const dk = dateKey(parsedDate);
+
+    // data.time = "2:30 PM"  → "14:30"
+    const m = data.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!m) return;
+    let h = parseInt(m[1]);
+    const mins = m[2];
+    const ampm = m[3].toUpperCase();
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    const timeKey = `${pad(h)}:${mins}`;
+
+    if (!BOOKED[dk]) BOOKED[dk] = [];
+    BOOKED[dk].push(timeKey);
+  });
+
+  console.log('[WellPath] Live update from Firestore:', BOOKED);
+
+  updateTotalLabel();
+
+  if (firstLoad) {
+    firstLoad = false;
+    renderStrip();
+    setDay(0);
+  } else {
+    // Re-render live without resetting selected slot
+    renderStrip();
+    renderSlots();
+  }
+
+}, (err) => {
+  console.error('[WellPath] Firestore error:', err);
+  document.getElementById('slotsContainer').innerHTML = `
+    <div style="background:var(--orange-light);border:1.5px solid #fdddd5;
+      border-radius:var(--radius-sm);padding:16px 20px;font-size:13px;color:var(--gray-700);">
+      <strong style="color:var(--orange);">⚠ Could not connect to database.</strong><br>
+      Please refresh the page to try again.
+    </div>`;
+});
 </script>
 </body>
 </html>
