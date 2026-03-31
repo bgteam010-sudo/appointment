@@ -187,7 +187,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
   </div>
   <div>
-    <h1>WellPath Clinic</h1>
+    <h1>Bhupendra Goud</h1>
     <span>Appointment Portal</span>
   </div>
 </header>
@@ -205,7 +205,7 @@
     <div class="provider-select-left">
       <div class="provider-avatar-sm">🩺</div>
       <div>
-        <h3>Dr. Meera Kapoor</h3>
+        <h3>Nutritionist Bhupendra Goud</h3>
         <p>Weight Loss &amp; Metabolic Health</p>
         <p class="slots" id="totalAvailLabel">Loading…</p>
       </div>
@@ -239,7 +239,7 @@
 
   <!-- Section title -->
   <div class="slots-section-title">
-    Available times for Dr. Meera Kapoor
+    Available times for Nutritionist Bhupendra Goud
     <span id="slotCountLabel">— select a day above</span>
   </div>
 
@@ -251,7 +251,7 @@
       </svg>
       <h4>All slots are fully booked for this date</h4>
     </div>
-    <p>Every slot on this day is already taken. You can pick a different date above, or message Dr. Meera Kapoor's clinic directly on WhatsApp to request an appointment outside of regular hours.</p>
+    <p>Every slot on this day is already taken. You can pick a different date above, or message Bhupendra Goud's clinic directly on WhatsApp to request an appointment outside of regular hours.</p>
     <a class="wa-btn" id="waLink" href="#" target="_blank">
       <svg width="20" height="20" viewBox="0 0 32 32" fill="white">
         <path d="M16 0C7.163 0 0 7.163 0 16c0 2.822.738 5.469 2.031 7.769L0 32l8.469-2.219A15.93 15.93 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm0 29.333a13.27 13.27 0 01-6.771-1.854l-.486-.289-5.027 1.318 1.342-4.9-.317-.503A13.267 13.267 0 012.667 16C2.667 8.636 8.636 2.667 16 2.667S29.333 8.636 29.333 16 23.364 29.333 16 29.333zm7.258-9.958c-.397-.199-2.348-1.158-2.712-1.29-.363-.132-.628-.198-.892.199-.264.397-1.023 1.29-1.254 1.554-.231.265-.462.298-.859.1-.397-.2-1.676-.618-3.193-1.97-1.18-1.053-1.977-2.352-2.208-2.749-.231-.397-.025-.611.173-.809.178-.177.397-.463.595-.694.199-.232.265-.397.397-.661.133-.265.066-.497-.033-.695-.1-.199-.893-2.152-1.223-2.947-.322-.773-.65-.668-.892-.68l-.761-.013c-.264 0-.694.099-1.058.497-.363.397-1.388 1.357-1.388 3.31s1.421 3.838 1.62 4.103c.198.264 2.796 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
@@ -268,7 +268,7 @@
     <div class="sel-apt-info">
       <h4>Selected appointment</h4>
       <p id="selectedText"></p>
-      <p style="font-size:12px;color:var(--gray-500);margin-top:2px">Dr. Meera Kapoor</p>
+      <p style="font-size:12px;color:var(--gray-500);margin-top:2px">Nutritionist Bhupendra Goud</p>
     </div>
     <button class="sel-apt-dismiss" id="dismissBtn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -441,7 +441,7 @@ function renderSlots() {
   const banner = document.getElementById('waBanner');
   if (full) {
     const msg = encodeURIComponent(
-      `Hello,\n\nI'd like to book a *Weight Loss Consultation* with Dr. Meera Kapoor on *${fullDate(day)}*.\n\nAll regular time slots are fully booked on this date. Could you please help me schedule an appointment at a convenient time?\n\nThank you.`
+      `Hello,\n\nI'd like to book a *Weight Loss Consultation* with Nutritionist Bhupendra Goud on *${fullDate(day)}*.\n\nAll regular time slots are fully booked on this date. Could you please help me schedule an appointment at a convenient time?\n\nThank you.`
     );
     document.getElementById('waLink').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
     banner.classList.add('show');
