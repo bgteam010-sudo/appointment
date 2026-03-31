@@ -261,9 +261,11 @@ function submitRequest() {
   }
 
   if (valid) {
-    sessionStorage.setItem('patientName', name.value.trim());
-    sessionStorage.setItem('patientAge', age.value);
+    sessionStorage.setItem('patientName',   name.value.trim());
+    sessionStorage.setItem('patientAge',    age.value);
     sessionStorage.setItem('patientGender', gender.value);
+    sessionStorage.setItem('patientPhone',  document.getElementById('phone').value.trim());
+    sessionStorage.setItem('patientEmail',  document.getElementById('email').value.trim());
     window.location.href = 'page6-confirmation.html';
   }
 }
