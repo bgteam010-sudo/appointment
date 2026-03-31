@@ -252,9 +252,18 @@
   const name    = sessionStorage.getItem('patientName')   || '';
   const age     = sessionStorage.getItem('patientAge')    || '';
   const gender  = sessionStorage.getItem('patientGender') || '';
+  const phone   = sessionStorage.getItem('patientPhone')  || '';
+  const email   = sessionStorage.getItem('patientEmail')  || '';
   const date    = sessionStorage.getItem('appointmentDate') || 'Tuesday, March 24, 2026';
   const time    = sessionStorage.getItem('appointmentTime') || '3:30 PM';
   const refId   = 'WLC-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+
+  // ── Pull plan info from sessionStorage (set by landing page) ──
+  const planKey      = sessionStorage.getItem('selectedPlan')      || '';
+  const planName     = sessionStorage.getItem('selectedPlanName')  || '';
+  const planPrice    = sessionStorage.getItem('selectedPlanPrice') || '';
+  const planBookingId = sessionStorage.getItem('planBookingId')    || '';
+  const planDuration = planKey === '6k' ? '1 Month' : planKey === '10k' ? '2 Months' : planKey === '20k' ? '3 Months' : '';
 
   let qaRaw = {};
   try { qaRaw = JSON.parse(sessionStorage.getItem('questionnaireAnswers') || '{}'); } catch(e) {}
@@ -282,17 +291,25 @@
   const appointment = {
     // Patient details
     name,
-    age:    age    ? parseInt(age)  : null,
+    age:    age ? parseInt(age) : null,
     gender,
-    phone:  '',           // not collected pre-submit — add if you want
-    email:  '',           // same
+    phone,
+    email,
     // Appointment
-    service:         'Weight Loss Consultation',
-    provider:        'Dr. Meera Kapoor',
+    service:  'Weight Loss Consultation',
+    provider: 'Nutritionist Bhupendra Goud',
     date,
     time,
     // Questionnaire answers (readable labels as keys)
     qa: qaFormatted,
+    // ── Plan selected on landing page ──────────
+    plan: {
+      key:       planKey,
+      name:      planName,
+      price:     planPrice,
+      duration:  planDuration,
+      bookingId: planBookingId
+    },
     // Admin fields
     status:    'pending',
     notified:  false,
