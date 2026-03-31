@@ -199,7 +199,7 @@
   </a>
 
   <h1 class="page-title">Weight Loss Consultation</h1>
-  <p class="page-subtitle">Select an appointment time.</p>
+  <p class="page-subtitle">Appointments are available on <strong>March 12 only</strong>. All other dates are fully booked.</p>
 
   <div class="provider-select-card">
     <div class="provider-select-left">
@@ -232,7 +232,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <div class="day-strip" id="dayStrip"></div>
-    <button class="day-nav-btn" id="nextBtn">
+    <button class="day-nav-btn" id="nextBtn" disabled>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
     </button>
   </div>
@@ -358,15 +358,12 @@ function shortDate(d) {
 }
 
 // ─────────────────────────────────────────
-// Build available days list
+// Build available days list — ONLY March 12
 // ─────────────────────────────────────────
 const availDays = [];
-const base = today();
-for (let i = 0; i <= DAYS_AHEAD; i++) {
-  const d = new Date(base);
-  d.setDate(d.getDate() + i);
-  if (CLINIC_OPEN_DAYS.includes(d.getDay())) availDays.push(d);
-}
+const march12 = new Date(new Date().getFullYear(), 2, 12); // Month is 0-indexed, so 2 = March
+march12.setHours(0, 0, 0, 0);
+availDays.push(march12);
 
 // ─────────────────────────────────────────
 // State
