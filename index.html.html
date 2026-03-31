@@ -358,7 +358,7 @@ window.proceed = async () => {
     sessionStorage.setItem('selectedPlanPrice',p.price);
 
     showToast('✅ Plan selected! Redirecting to book your slot…');
-    setTimeout(() => { window.location.href = 'index.html'; }, 1300);
+    setTimeout(() => { window.location.href = 'appointment.html'; }, 1300);
   } catch(err) {
     console.error(err);
     document.getElementById('sov').classList.remove('on');
