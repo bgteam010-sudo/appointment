@@ -199,7 +199,7 @@
   </a>
 
   <h1 class="page-title">Weight Loss Consultation</h1>
-  <p class="page-subtitle">Appointments are available on <strong>March 12 only</strong>. All other dates are fully booked.</p>
+  <p class="page-subtitle">Select an appointment time.</p>
 
   <div class="provider-select-card">
     <div class="provider-select-left">
@@ -232,7 +232,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <div class="day-strip" id="dayStrip"></div>
-    <button class="day-nav-btn" id="nextBtn" disabled>
+    <button class="day-nav-btn" id="nextBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
     </button>
   </div>
@@ -294,9 +294,14 @@ import { getFirestore, collection, onSnapshot, query, where }
 const WHATSAPP_NUMBER  = '919876543210';
 const CLINIC_OPEN_DAYS = [1,2,3,4,5,6];
 const SLOT_START_HOUR  = 9;
-const SLOT_END_HOUR    = 21;
+const SLOT_START_MIN   = 15;   // 9:15 AM start
+const SLOT_END_HOUR    = 17;
+const SLOT_END_MIN     = 30;   // 5:30 PM end
+const SLOT_DURATION    = 15;   // 15-minute slots
 const DAYS_AHEAD       = 14;
 const CHIPS_PER_PAGE   = 5;
+// Only April 12 is open for booking
+const OPEN_DATE        = '2026-04-12';
 
 const firebaseConfig = {
   apiKey:            "AIzaSyCchLfleDnJVGHopbQnYN4RoLFLpf_cTL0",
@@ -317,11 +322,15 @@ function dateKey(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.
 // BOOKED map — rebuilt live from Firestore
 let BOOKED = {};
 
-// All 30-min slots for the day
+// All 15-min slots from 9:15 to 17:30
 function allSlots() {
   const out = [];
-  for (let h = SLOT_START_HOUR; h < SLOT_END_HOUR; h++) {
-    out.push(`${pad(h)}:00`, `${pad(h)}:30`);
+  let h = SLOT_START_HOUR, m = SLOT_START_MIN;
+  const endTotal = SLOT_END_HOUR * 60 + SLOT_END_MIN;
+  while (h * 60 + m < endTotal) {
+    out.push(`${pad(h)}:${pad(m)}`);
+    m += SLOT_DURATION;
+    if (m >= 60) { h += 1; m -= 60; }
   }
   return out;
 }
@@ -342,11 +351,11 @@ function fmt(hhmm) {
   return `${h}:${pad(m)} ${s}`;
 }
 
-// Format slot range "HH:MM" → "9:00 AM – 9:30 AM"
+// Format slot range "HH:MM" → "9:15 AM – 9:30 AM"
 function fmtRange(hhmm) {
   let [h, m] = hhmm.split(':').map(Number);
-  let em = m + 30, eh = em >= 60 ? h + 1 : h;
-  em = em >= 60 ? em - 60 : em;
+  let em = m + SLOT_DURATION, eh = h;
+  if (em >= 60) { eh += 1; em -= 60; }
   return `${fmt(hhmm)} – ${fmt(`${pad(eh)}:${pad(em)}`)}`;
 }
 
@@ -358,12 +367,12 @@ function shortDate(d) {
 }
 
 // ─────────────────────────────────────────
-// Build available days list — ONLY March 12
+// Build available days list
 // ─────────────────────────────────────────
+// Only April 12, 2026 is available for booking
 const availDays = [];
-const march12 = new Date(new Date().getFullYear(), 2, 12); // Month is 0-indexed, so 2 = March
-march12.setHours(0, 0, 0, 0);
-availDays.push(march12);
+const april12 = new Date('2026-04-12T00:00:00');
+availDays.push(april12);
 
 // ─────────────────────────────────────────
 // State
@@ -448,9 +457,9 @@ function renderSlots() {
 
   // Render slot cards grouped by period
   const periods = [
-    { label: '☀️  Morning',   from: SLOT_START_HOUR, to: 12 },
-    { label: '🌤️  Afternoon', from: 12,              to: 17 },
-    { label: '🌙  Evening',   from: 17,              to: SLOT_END_HOUR },
+    { label: '☀️  Morning',   from: 9*60+15,  to: 12*60 },
+    { label: '🌤️  Afternoon', from: 12*60,    to: 17*60 },
+    { label: '🌅  Evening',   from: 17*60,    to: 17*60+30 },
   ];
 
   const container = document.getElementById('slotsContainer');
@@ -458,8 +467,9 @@ function renderSlots() {
 
   periods.forEach(p => {
     const pSlots = allSlots().filter(k => {
-      const h = parseInt(k);
-      return h >= p.from && h < p.to;
+      const [hh, mm] = k.split(':').map(Number);
+      const total = hh * 60 + mm;
+      return total >= p.from && total < p.to;
     });
     if (!pSlots.length) return;
 
