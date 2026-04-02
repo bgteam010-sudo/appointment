@@ -213,14 +213,6 @@
       <input type="tel" class="form-input" id="phone" placeholder="e.g. +91 98765 43210">
       <div class="error-msg" id="phoneError">Please enter a valid 10-digit phone number</div>
     </div>
-    <div id="recaptcha-container"></div>
-
-<div id="otpSection" style="display: none; margin-top: 20px; padding: 20px; background: var(--teal-light); border-radius: var(--radius-sm); border: 1.5px dashed var(--teal);">
-    <h4 style="color: var(--teal-dark); margin-bottom: 10px;">Verify your number</h4>
-    <p style="font-size: 12px; margin-bottom: 12px;">Enter the 6-digit code sent to your phone.</p>
-    <input type="text" class="form-input" id="otpCode" placeholder="Enter OTP" style="text-align: center; font-size: 18px; letter-spacing: 4px;">
-    <button type="button" class="btn-submit" style="margin-top: 15px; width: 100%;" onclick="verifyOtp()">Verify & Confirm Appointment</button>
-</div>
 
     <div class="form-group">
       <label class="form-label">Email address <span class="required">*</span></label>
@@ -236,84 +228,27 @@
 </div>
 
 
-<script type="module">
-  // 1. Firebase Functions Import (CDN links use karna zaroori hai browser ke liye)
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-  // 2. Aapka Firebase Configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyCchLfleDnJVGHopbQnYN4RoLFLpf_cTL0",
-    authDomain: "wellpath-clinic.firebaseapp.com",
-    projectId: "wellpath-clinic",
-    storageBucket: "wellpath-clinic.firebasestorage.app",
-    messagingSenderId: "1012769542606",
-    appId: "1:1012769542606:web:a8ceb76fc16bf460cadb9f",
-    measurementId: "G-9PLFEH88DP"
-  };
-
-  // 3. Initialize Firebase & Auth
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-
-  // 4. reCAPTCHA Setup (Invisible)
-  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-    'size': 'invisible'
-  });
-
-  // 5. Load Session Data (Jo pehle se tha)
+<script>
+  // Load Session Data
   const date = sessionStorage.getItem('appointmentDate') || 'Tuesday, March 24, 2026';
   const time = sessionStorage.getItem('appointmentTime') || '3:30 PM';
   document.getElementById('apptTimeDisplay').textContent = `${date} at ${time}`;
   document.getElementById('slotDetail').textContent = `${date} at ${time}`;
 
-  // --- FUNCTIONS ---
-
-  // STEP 1: Form Validation & Send OTP
-  window.submitRequest = async function() {
-    let valid = validateForm(); 
-    if (!valid) return;
-
-    const phoneInput = document.getElementById('phone').value.trim();
-    // Phone number mein +91 add karna (Firebase requirement)
-    const phoneNumber = phoneInput.startsWith('+') ? phoneInput : "+91" + phoneInput;
-
-    try {
-      const appVerifier = window.recaptchaVerifier;
-      window.confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-      
-      // Form chhupao aur OTP box dikhao
-      document.getElementById('otpSection').style.display = 'block';
-      document.querySelector('.action-row').style.display = 'none';
-      alert("OTP sent to " + phoneNumber);
-    } catch (error) {
-      console.error("SMS Error:", error);
-      alert("Error sending SMS: " + error.message);
-    }
+  // Form Validation & Submit
+  window.submitRequest = function() {
+    if (!validateForm()) return;
+    saveDataToSession();
+    window.location.href = 'page6-confirmation.html';
   };
 
-  // STEP 2: Verify OTP
-  window.verifyOtp = async function() {
-    const code = document.getElementById('otpCode').value;
-    try {
-      await window.confirmationResult.confirm(code);
-      
-      // OTP sahi hai, ab data save karo aur redirect karo
-      saveDataToSession();
-      window.location.href = 'page6-confirmation.html';
-    } catch (error) {
-      alert("Invalid OTP code. Please try again.");
-    }
-  };
-
-  // STEP 3: Form Validation Logic
   function validateForm() {
     let valid = true;
-    const name = document.getElementById('fullName');
-    const age = document.getElementById('age');
+    const name   = document.getElementById('fullName');
+    const age    = document.getElementById('age');
     const gender = document.getElementById('gender');
-    const phone = document.getElementById('phone');
-    const email = document.getElementById('email');
+    const phone  = document.getElementById('phone');
+    const email  = document.getElementById('email');
 
     [name, age, gender, phone, email].forEach(el => el.classList.remove('error'));
     document.querySelectorAll('.error-msg').forEach(e => e.style.display = 'none');
@@ -348,13 +283,12 @@
     return valid;
   }
 
-  // STEP 4: Save to Session
   function saveDataToSession() {
-    sessionStorage.setItem('patientName', document.getElementById('fullName').value.trim());
-    sessionStorage.setItem('patientAge', document.getElementById('age').value);
+    sessionStorage.setItem('patientName',   document.getElementById('fullName').value.trim());
+    sessionStorage.setItem('patientAge',    document.getElementById('age').value);
     sessionStorage.setItem('patientGender', document.getElementById('gender').value);
-    sessionStorage.setItem('patientPhone', document.getElementById('phone').value.trim());
-    sessionStorage.setItem('patientEmail', document.getElementById('email').value.trim());
+    sessionStorage.setItem('patientPhone',  document.getElementById('phone').value.trim());
+    sessionStorage.setItem('patientEmail',  document.getElementById('email').value.trim());
   }
 </script>
 </body>
