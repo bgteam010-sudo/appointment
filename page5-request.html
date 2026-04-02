@@ -227,69 +227,64 @@
   </div>
 </div>
 
-
 <script>
-  // Load Session Data
-  const date = sessionStorage.getItem('appointmentDate') || 'Tuesday, March 24, 2026';
-  const time = sessionStorage.getItem('appointmentTime') || '3:30 PM';
-  document.getElementById('apptTimeDisplay').textContent = `${date} at ${time}`;
-  document.getElementById('slotDetail').textContent = `${date} at ${time}`;
+// Load appointment info from session
+const date = sessionStorage.getItem('appointmentDate') || 'Tuesday, March 24, 2026';
+const time = sessionStorage.getItem('appointmentTime') || '3:30 PM';
+document.getElementById('apptTimeDisplay').textContent = `${date} at ${time}`;
+document.getElementById('slotDetail').textContent = `${date} at ${time}`;
 
-  // Form Validation & Submit
-  window.submitRequest = function() {
-    if (!validateForm()) return;
-    saveDataToSession();
+function submitRequest() {
+  let valid = true;
+
+  const name   = document.getElementById('fullName');
+  const age    = document.getElementById('age');
+  const gender = document.getElementById('gender');
+  const phone  = document.getElementById('phone');
+  const email  = document.getElementById('email');
+
+  [name, age, gender, phone, email].forEach(el => el.classList.remove('error'));
+  document.querySelectorAll('.error-msg').forEach(e => e.style.display = 'none');
+
+  if (!name.value.trim()) {
+    name.classList.add('error');
+    document.getElementById('nameError').style.display = 'block';
+    valid = false;
+  }
+  if (!age.value || age.value < 1 || age.value > 120) {
+    age.classList.add('error');
+    document.getElementById('ageError').style.display = 'block';
+    valid = false;
+  }
+  if (!gender.value) {
+    gender.classList.add('error');
+    document.getElementById('genderError').style.display = 'block';
+    valid = false;
+  }
+  // Phone validation — must be 10 digits (ignoring spaces, +, -)
+  const phoneClean = phone.value.replace(/[\s\-\+]/g, '');
+  if (!phoneClean || !/^\d{10,13}$/.test(phoneClean)) {
+    phone.classList.add('error');
+    document.getElementById('phoneError').style.display = 'block';
+    valid = false;
+  }
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email.value.trim() || !emailRegex.test(email.value.trim())) {
+    email.classList.add('error');
+    document.getElementById('emailError').style.display = 'block';
+    valid = false;
+  }
+
+  if (valid) {
+    sessionStorage.setItem('patientName',   name.value.trim());
+    sessionStorage.setItem('patientAge',    age.value);
+    sessionStorage.setItem('patientGender', gender.value);
+    sessionStorage.setItem('patientPhone',  phone.value.trim());
+    sessionStorage.setItem('patientEmail',  email.value.trim());
     window.location.href = 'page6-confirmation.html';
-  };
-
-  function validateForm() {
-    let valid = true;
-    const name   = document.getElementById('fullName');
-    const age    = document.getElementById('age');
-    const gender = document.getElementById('gender');
-    const phone  = document.getElementById('phone');
-    const email  = document.getElementById('email');
-
-    [name, age, gender, phone, email].forEach(el => el.classList.remove('error'));
-    document.querySelectorAll('.error-msg').forEach(e => e.style.display = 'none');
-
-    if (!name.value.trim()) {
-      name.classList.add('error');
-      document.getElementById('nameError').style.display = 'block';
-      valid = false;
-    }
-    if (!age.value || age.value < 1 || age.value > 120) {
-      age.classList.add('error');
-      document.getElementById('ageError').style.display = 'block';
-      valid = false;
-    }
-    if (!gender.value) {
-      gender.classList.add('error');
-      document.getElementById('genderError').style.display = 'block';
-      valid = false;
-    }
-    const phoneClean = phone.value.replace(/[\s\-\+]/g, '');
-    if (!phoneClean || !/^\d{10,13}$/.test(phoneClean)) {
-      phone.classList.add('error');
-      document.getElementById('phoneError').style.display = 'block';
-      valid = false;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.value.trim() || !emailRegex.test(email.value.trim())) {
-      email.classList.add('error');
-      document.getElementById('emailError').style.display = 'block';
-      valid = false;
-    }
-    return valid;
   }
-
-  function saveDataToSession() {
-    sessionStorage.setItem('patientName',   document.getElementById('fullName').value.trim());
-    sessionStorage.setItem('patientAge',    document.getElementById('age').value);
-    sessionStorage.setItem('patientGender', document.getElementById('gender').value);
-    sessionStorage.setItem('patientPhone',  document.getElementById('phone').value.trim());
-    sessionStorage.setItem('patientEmail',  document.getElementById('email').value.trim());
-  }
+}
 </script>
 </body>
 </html>
